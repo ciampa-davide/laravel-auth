@@ -4,6 +4,10 @@ namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
 use Illuminate\Http\Request;
+use Illuminate\Support\Str; //con questo posso usare lo slug
+use Illuminate\support\Facades\Auth;
+use App\Mail\NewMail;
+use Illuminate\Support\Facades\Mail;
 use App\Post;
 
 class PostController extends Controller
@@ -15,7 +19,7 @@ class PostController extends Controller
      */
     public function index()
     {
-        $post = Post::all();
+        $posts = Post::where('user_id', Auth::id())->get();
         return view('admin.posts.index', compact('posts'));
     }
 
@@ -37,7 +41,25 @@ class PostController extends Controller
      */
     public function store(Request $request)
     {
-        //
+        $data = $request->all();
+        $request->validate(
+            [
+                'title'=>'required|max:100',
+                'text'=>'required'
+            ]
+        );
+        $newPost = new Post();
+        //calcolo dello slug
+        $data['slug'] = Str::slug($data['title']);
+        //recupera l'id dell'utente loggato
+        $data['user_id'] = Auth::id();
+        $newPost->fill($data);
+        $newPost->save();
+
+
+        Mail::to('mail@mail.it')->send(new NewMail());
+
+        return redirect()->route('admin.posts.index');
     }
 
     /**
